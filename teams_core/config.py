@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 import os
 
+from dotenv import load_dotenv
+
 
 @dataclass(frozen=True)
 class TeamsConfig:
@@ -22,6 +24,8 @@ class TeamsConfig:
 
     @classmethod
     def from_env(cls) -> "TeamsConfig":
+        load_dotenv()
+
         def req(key: str) -> str:
             val = os.environ.get(key)
             if not val:
