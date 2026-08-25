@@ -59,11 +59,47 @@ All required, loaded via `TeamsConfig.from_env()`:
 | `TEAMS_LIFECYCLE_URL` | Public HTTPS URL for Graph lifecycle events |
 | `TEAMS_CLIENT_STATE` | Random secret echoed by Graph to verify notifications |
 
+## Flujo de ejecución (setup completo)
+
+El sistema requiere que los pasos se ejecuten en este orden. Cada paso depende del anterior.
+
+```
+1. Instalar dependencias
+   pip install -e ".[dev]"
+
+2. Configurar variables de entorno
+   Copiar .env.example a .env y completar todos los valores.
+   Ver tabla "Environment variables" arriba.
+
+3. Levantar Redis (requerido por MsalTokenProvider)
+   docker run -d -p 6379:6379 redis
+   El provider usa un lock distribuido en Redis para evitar que
+   múltiples procesos invaliden el refresh token al renovar
+   simultáneamente. Sin Redis corriendo, cualquier operación
+   que requiera un token falla con ConnectionError.
+
+4. Bootstrap de autenticación (una sola vez, interactivo)
+   python -m scripts.bootstrap_auth
+   Abre el navegador para que el service account inicie sesión.
+   Genera el archivo token_cache.enc cifrado con Fernet.
+   Debe repetirse si el refresh token expira (~90 días de
+   inactividad, verificar por tenant).
+
+5. El sistema está listo para operar
+   A partir de aquí, MsalTokenProvider renueva el access token
+   silenciosamente usando el cache cifrado + el lock de Redis.
+   GraphClient, GraphMessageSender y GraphMessageReader pueden
+   instanciarse y usarse.
+```
+
 ## Common commands
 
 ```bash
 # Install in dev mode
 pip install -e ".[dev]"
+
+# Levantar Redis (prerequisito)
+docker run -d -p 6379:6379 redis
 
 # Bootstrap auth (run once, interactively, as the service account)
 python -m scripts.bootstrap_auth
