@@ -112,6 +112,9 @@ ruff check teams_core/ tests/
 
 # Type check
 mypy teams_core/
+
+# Smoke test: list chats and read messages (requires Redis + token cache)
+python -m scripts.test_read
 ```
 
 ## Important constraints
