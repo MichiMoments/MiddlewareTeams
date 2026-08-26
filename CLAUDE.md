@@ -3,11 +3,13 @@
 Framework-free Python package for Microsoft Teams integration via Microsoft Graph API.
 Designed to be consumed by Django, Streamlit, or any other Python project.
 
+> Referencia detallada de clases, métodos y firmas: ver [ARCHITECTURE.md](ARCHITECTURE.md) (local, no versionado).
+
 ## Architecture
 
 ```
 teams_core/
-  config.py              # TeamsConfig dataclass, loaded from env vars
+  config.py              # TeamsConfig dataclass, loads .env via python-dotenv
   ports.py               # Protocol interfaces (TokenProvider, MessageSender, MessageReader, MessageAnalyzer)
   auth/
     scopes.py            # Delegated Graph scopes (7 scopes)
@@ -24,6 +26,9 @@ teams_core/
       subscriptions.py   # SubscriptionManager (create, renew, delete, list_active)
 scripts/
   bootstrap_auth.py      # One-time interactive sign-in to seed the token cache
+  test_read.py           # Smoke test: list chats and read recent messages
+  test_send.py           # Smoke test: send a message to a Teams chat
+  test_poll.py           # Polling test: detect new messages and auto-reply
 ```
 
 ## Key design decisions
@@ -41,6 +46,7 @@ scripts/
 - `httpx` - HTTP client
 - `cryptography` - Fernet encryption for token cache
 - `redis` - Distributed lock for token refresh
+- `python-dotenv` - Loads `.env` automatically in `TeamsConfig.from_env()`
 
 ## Environment variables
 
@@ -92,6 +98,7 @@ El sistema requiere que los pasos se ejecuten en este orden. Cada paso depende d
    instanciarse y usarse.
 ```
 
+
 ## Common commands
 
 ```bash
@@ -115,6 +122,12 @@ mypy teams_core/
 
 # Smoke test: list chats and read messages (requires Redis + token cache)
 python -m scripts.test_read
+
+# Smoke test: send a message (requires Redis + token cache)
+python -m scripts.test_send
+
+# Polling test: auto-reply to new messages (requires Redis + token cache)
+python -m scripts.test_poll
 ```
 
 ## Important constraints
