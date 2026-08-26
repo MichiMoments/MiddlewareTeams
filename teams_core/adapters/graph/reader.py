@@ -7,6 +7,7 @@ from teams_core.domain.models import (
     Author,
     ConversationKind,
     ConversationRef,
+    FileAttachment,
     InboundMessage,
 )
 
@@ -45,6 +46,23 @@ class GraphMessageReader:
         return self._to_domain(raw, conversation)
 
     @staticmethod
+    def _parse_attachments(raw_attachments: list[dict]) -> tuple[FileAttachment, ...]:
+        result = []
+        for att in raw_attachments:
+            if att.get("contentType") != "reference":
+                continue
+            content_url = att.get("contentUrl")
+            name = att.get("name")
+            if not content_url or not name:
+                continue
+            result.append(FileAttachment(
+                id=att["id"],
+                name=name,
+                content_url=content_url,
+            ))
+        return tuple(result)
+
+    @staticmethod
     def _to_domain(raw: dict, conv: ConversationRef) -> InboundMessage:
         body = raw.get("body") or {}
         html = body.get("content") or ""
@@ -67,4 +85,7 @@ class GraphMessageReader:
             ),
             etag=raw.get("etag"),
             reply_to_id=raw.get("replyToId"),
+            attachments=GraphMessageReader._parse_attachments(
+                raw.get("attachments") or []
+            ),
         )

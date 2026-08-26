@@ -2,6 +2,8 @@ from typing import Protocol, Sequence
 
 from teams_core.domain.models import (
     ConversationRef,
+    DownloadedFile,
+    FileAttachment,
     InboundMessage,
     OutboundMessage,
 )
@@ -25,6 +27,10 @@ class MessageReader(Protocol):
     def get_one(
         self, conversation: ConversationRef, message_id: str
     ) -> InboundMessage: ...
+
+
+class FileDownloader(Protocol):
+    def download(self, attachment: FileAttachment) -> DownloadedFile: ...
 
 
 class MessageAnalyzer(Protocol):
