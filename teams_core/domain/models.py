@@ -46,6 +46,22 @@ class Mention:
 
 
 @dataclass(frozen=True)
+class FileAttachment:
+    """File sent in a Teams message (metadata only, no content)."""
+    id: str
+    name: str
+    content_url: str
+
+
+@dataclass(frozen=True)
+class DownloadedFile:
+    """File content fetched from SharePoint/OneDrive via Graph."""
+    name: str
+    content: bytes
+    content_type: str
+
+
+@dataclass(frozen=True)
 class OutboundMessage:
     body_html: str
     mentions: list[Mention] = field(default_factory=list)
@@ -65,6 +81,7 @@ class InboundMessage:
     created_at: datetime
     etag: str | None = None
     reply_to_id: str | None = None
+    attachments: tuple[FileAttachment, ...] = ()
 
     @property
     def dedup_key(self) -> str:

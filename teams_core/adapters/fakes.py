@@ -4,6 +4,8 @@ from typing import Sequence
 from teams_core.domain.models import (
     Author,
     ConversationRef,
+    DownloadedFile,
+    FileAttachment,
     InboundMessage,
     OutboundMessage,
 )
@@ -30,6 +32,29 @@ class FakeReader:
             if m.message_id == message_id:
                 return m
         raise KeyError(message_id)
+
+
+class FakeFileDownloader:
+    def __init__(self, content: bytes = b"fake file content") -> None:
+        self.downloaded: list[FileAttachment] = []
+        self._content = content
+
+    def download(self, attachment: FileAttachment) -> DownloadedFile:
+        self.downloaded.append(attachment)
+        return DownloadedFile(
+            name=attachment.name,
+            content=self._content,
+            content_type="application/octet-stream",
+        )
+
+
+def make_attachment(
+    name: str = "test.pdf",
+    content_url: str = "https://tenant.sharepoint.com/sites/Test/Shared%20Documents/test.pdf",
+    **kw,
+) -> FileAttachment:
+    defaults = dict(id="att-1", name=name, content_url=content_url)
+    return FileAttachment(**{**defaults, **kw})
 
 
 def make_message(text: str = "hello", **kw) -> InboundMessage:

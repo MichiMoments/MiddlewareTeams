@@ -90,6 +90,45 @@ class GraphClient:
             raise GraphPermissionError(403, code, message)
         raise GraphError(resp.status_code, code, message)
 
+    def request_bytes(
+        self,
+        method: str,
+        path: str,
+        *,
+        params: dict[str, Any] | None = None,
+    ) -> httpx.Response:
+        url = path if path.startswith("http") else f"{self._cfg.graph_base}{path}"
+
+        for attempt in range(1, self.MAX_ATTEMPTS + 1):
+            resp = self._http.request(
+                method,
+                url,
+                params=params,
+                headers={
+                    "Authorization": f"Bearer {self._tokens.get_token()}",
+                },
+                follow_redirects=True,
+            )
+
+            if resp.status_code in (429, 503, 504):
+                if attempt == self.MAX_ATTEMPTS:
+                    raise GraphThrottled(resp.status_code, "throttled", resp.text)
+                delay = float(
+                    resp.headers.get("Retry-After", 2 ** attempt)
+                ) + random.uniform(0, 0.5)
+                log.warning(
+                    "Graph throttled, sleeping %.1fs (attempt %s)", delay, attempt
+                )
+                time.sleep(delay)
+                continue
+
+            if resp.status_code >= 400:
+                self._raise(resp)
+
+            return resp
+
+        raise GraphThrottled(429, "throttled", "retries exhausted")
+
     def paged(self, path: str, *, params: dict | None = None):
         """Follows @odata.nextLink. Yields raw items."""
         page = self.request("GET", path, params=params)
