@@ -34,8 +34,9 @@ class GraphMessageSender:
     def _build_payload(message: OutboundMessage) -> dict:
         payload: dict = {
             "body": {"contentType": "html", "content": message.body_html},
-            "importance": message.importance,
         }
+        if message.importance != "normal":
+            payload["importance"] = message.importance
         if message.subject:
             payload["subject"] = message.subject
         if message.mentions:
