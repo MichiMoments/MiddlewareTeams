@@ -16,6 +16,7 @@ class TeamsConfig:
     notification_url: str
     lifecycle_url: str
     client_state: str
+    storage_account_connection_string: str
     graph_base: str = "https://graph.microsoft.com/v1.0"
 
     @property
@@ -43,4 +44,5 @@ class TeamsConfig:
             notification_url=req("TEAMS_NOTIFICATION_URL"),
             lifecycle_url=req("TEAMS_LIFECYCLE_URL"),
             client_state=req("TEAMS_CLIENT_STATE"),
+            storage_account_connection_string=req('STORAGE_ACCOUNT_CONNECTION_STRING'),
         )

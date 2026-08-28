@@ -10,27 +10,30 @@ Designed to be consumed by Django, Streamlit, or any other Python project.
 ```
 teams_core/
   config.py              # TeamsConfig dataclass, loads .env via python-dotenv
-  ports.py               # Protocol interfaces (TokenProvider, MessageSender, MessageReader, FileDownloader, MessageAnalyzer)
+  ports.py               # Protocol interfaces (TokenProvider, MessageSender, MessageReader, FileDownloader, FileUploader, MessageAnalyzer)
   auth/
     scopes.py            # Delegated Graph scopes (8 scopes, includes Files.Read.All)
     cache.py             # EncryptedTokenCache (Fernet-encrypted MSAL cache at rest)
     provider.py          # MsalTokenProvider (delegated auth with Redis lock for safe refresh)
   domain/
-    models.py            # ConversationRef, Author, Mention, FileAttachment, DownloadedFile, OutboundMessage, InboundMessage
+    models.py            # ConversationRef, Author, Mention, FileAttachment, DownloadedFile, BlobRef, OutboundMessage, InboundMessage
   adapters/
-    fakes.py             # FakeSender, FakeReader, FakeFileDownloader, make_message(), make_attachment() for testing
+    fakes.py             # FakeSender, FakeReader, FakeFileDownloader, FakeFileUploader, make_message(), make_attachment(), make_blob_ref() for testing
     graph/
       client.py          # GraphClient (httpx, retry on 429/503/504, error translation, request_bytes for binary downloads)
       sender.py          # GraphMessageSender + mention_tag() helper
       reader.py          # GraphMessageReader (history + get_one, HTML stripping, attachment parsing)
       downloader.py      # GraphFileDownloader (download file attachments via /shares endpoint)
       subscriptions.py   # SubscriptionManager (create, renew, delete, list_active)
+    blob/
+      storage.py         # BlobStorageUploader (Azure Blob Storage upload + URL retrieval via container SAS URL)
 scripts/
   bootstrap_auth.py      # One-time interactive sign-in to seed the token cache
   test_read.py           # Smoke test: list chats and read recent messages
   test_send.py           # Smoke test: send a message to a Teams chat
   test_poll.py           # Polling test: detect new messages and auto-reply
   test_file.py           # Smoke test: find and download file attachments
+  test_blob.py           # Smoke test: upload file to Azure Blob Storage and get URL
 ```
 
 ## Key design decisions
@@ -49,6 +52,7 @@ scripts/
 - `cryptography` - Fernet encryption for token cache
 - `redis` - Distributed lock for token refresh
 - `python-dotenv` - Loads `.env` automatically in `TeamsConfig.from_env()`
+- `azure-storage-blob` - Azure Blob Storage SDK for file upload/download
 
 ## Environment variables
 
@@ -66,6 +70,7 @@ All required, loaded via `TeamsConfig.from_env()`:
 | `TEAMS_NOTIFICATION_URL` | Public HTTPS URL for Graph change notifications |
 | `TEAMS_LIFECYCLE_URL` | Public HTTPS URL for Graph lifecycle events |
 | `TEAMS_CLIENT_STATE` | Random secret echoed by Graph to verify notifications |
+| `STORAGE_ACCOUNT_CONNECTION_STRING` | Azure Blob Storage container SAS URL (for file uploads) |
 
 ## Flujo de ejecución (setup completo)
 
@@ -133,6 +138,9 @@ python -m scripts.test_poll
 
 # File test: find and download attachments (requires Redis + token cache + Files.Read.All scope)
 python -m scripts.test_file
+
+# Blob test: upload file to Azure Blob Storage (requires STORAGE_ACCOUNT_CONNECTION_STRING)
+python -m scripts.test_blob
 ```
 
 ## Important constraints
