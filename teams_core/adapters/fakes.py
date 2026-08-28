@@ -3,6 +3,7 @@ from typing import Sequence
 
 from teams_core.domain.models import (
     Author,
+    BlobRef,
     ConversationRef,
     DownloadedFile,
     FileAttachment,
@@ -57,6 +58,21 @@ def make_attachment(
     return FileAttachment(**{**defaults, **kw})
 
 
+class FakeFileUploader:
+    def __init__(self) -> None:
+        self.uploaded: list[tuple[bytes, str]] = []
+
+    def upload(self, file_content: bytes, file_name: str) -> BlobRef:
+        self.uploaded.append((file_content, file_name))
+        return BlobRef(
+            name=file_name,
+            url=f"https://fake.blob.core.windows.net/test-container/{file_name}",
+        )
+
+    def get_blob_url(self, blob_name: str) -> str:
+        return f"https://fake.blob.core.windows.net/test-container/{blob_name}"
+
+
 def make_message(text: str = "hello", **kw) -> InboundMessage:
     defaults = dict(
         message_id="1",
@@ -66,3 +82,10 @@ def make_message(text: str = "hello", **kw) -> InboundMessage:
         created_at=datetime.now(timezone.utc),
     )
     return InboundMessage(**{**defaults, **kw})
+
+
+def make_blob_ref(
+    name: str = "test.pdf",
+    url: str = "https://fake.blob.core.windows.net/test-container/test.pdf",
+) -> BlobRef:
+    return BlobRef(name=name, url=url)

@@ -1,6 +1,7 @@
 from typing import Protocol, Sequence
 
 from teams_core.domain.models import (
+    BlobRef,
     ConversationRef,
     DownloadedFile,
     FileAttachment,
@@ -31,6 +32,11 @@ class MessageReader(Protocol):
 
 class FileDownloader(Protocol):
     def download(self, attachment: FileAttachment) -> DownloadedFile: ...
+
+
+class FileUploader(Protocol):
+    def upload(self, file_content: bytes, file_name: str) -> BlobRef: ...
+    def get_blob_url(self, blob_name: str) -> str: ...
 
 
 class MessageAnalyzer(Protocol):

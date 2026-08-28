@@ -86,3 +86,10 @@ class InboundMessage:
     @property
     def dedup_key(self) -> str:
         return f"{self.conversation.key}:{self.message_id}"
+
+
+@dataclass(frozen=True)
+class BlobRef:
+    """Reference to a blob in Azure Blob Storage."""
+    name: str
+    url: str
