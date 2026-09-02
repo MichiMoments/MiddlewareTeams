@@ -6,5 +6,6 @@ SCOPES: list[str] = [
     "Team.ReadBasic.All",
     "Channel.ReadBasic.All",
     "User.ReadBasic.All",
-    "Files.Read.All",
+    "Mail.ReadWrite",
+    "Mail.Send",
 ]
