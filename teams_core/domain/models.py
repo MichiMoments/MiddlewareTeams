@@ -93,3 +93,59 @@ class BlobRef:
     """Reference to a blob in Azure Blob Storage."""
     name: str
     url: str
+
+
+# --- Email domain models ---
+
+
+@dataclass(frozen=True)
+class EmailAddress:
+    address: str
+    name: str | None = None
+
+
+@dataclass(frozen=True)
+class EmailFileAttachment:
+    """File to attach to an outgoing email. Max 3 MB for inline base64."""
+    name: str
+    content_bytes: bytes
+    content_type: str = "application/octet-stream"
+
+
+@dataclass(frozen=True)
+class OutboundEmail:
+    subject: str
+    body_html: str
+    to: list[EmailAddress] = field(default_factory=list)
+    cc: list[EmailAddress] = field(default_factory=list)
+    bcc: list[EmailAddress] = field(default_factory=list)
+    importance: str = "normal"
+    attachments: list[EmailFileAttachment] = field(default_factory=list)
+    save_to_sent: bool = True
+
+
+@dataclass(frozen=True)
+class InboundEmail:
+    """Normalized representation of a Graph mail message."""
+    message_id: str
+    subject: str
+    body_html: str
+    body_preview: str
+    from_address: EmailAddress
+    to_recipients: tuple[EmailAddress, ...]
+    cc_recipients: tuple[EmailAddress, ...] = ()
+    received_at: datetime | None = None
+    is_read: bool = False
+    importance: str = "normal"
+    has_attachments: bool = False
+    conversation_id: str | None = None
+    internet_message_id: str | None = None
+
+
+@dataclass(frozen=True)
+class MailFolder:
+    """A mail folder (Inbox, Sent, Drafts, etc.)."""
+    id: str
+    display_name: str
+    total_count: int = 0
+    unread_count: int = 0

@@ -10,21 +10,23 @@ Designed to be consumed by Django, Streamlit, or any other Python project.
 ```
 teams_core/
   config.py              # TeamsConfig dataclass, loads .env via python-dotenv
-  ports.py               # Protocol interfaces (TokenProvider, MessageSender, MessageReader, FileDownloader, FileUploader, MessageAnalyzer)
+  ports.py               # Protocol interfaces (TokenProvider, MessageSender, MessageReader, FileDownloader, FileUploader, EmailSender, EmailReader, MessageAnalyzer)
   auth/
-    scopes.py            # Delegated Graph scopes (8 scopes, includes Files.Read.All)
+    scopes.py            # Delegated Graph scopes (10 scopes, includes Files.Read.All, Mail.ReadWrite, Mail.Send)
     cache.py             # EncryptedTokenCache (Fernet-encrypted MSAL cache at rest)
     provider.py          # MsalTokenProvider (delegated auth with Redis lock for safe refresh)
   domain/
-    models.py            # ConversationRef, Author, Mention, FileAttachment, DownloadedFile, BlobRef, OutboundMessage, InboundMessage
+    models.py            # ConversationRef, Author, Mention, FileAttachment, DownloadedFile, BlobRef, OutboundMessage, InboundMessage, EmailAddress, EmailFileAttachment, OutboundEmail, InboundEmail, MailFolder
   adapters/
-    fakes.py             # FakeSender, FakeReader, FakeFileDownloader, FakeFileUploader, make_message(), make_attachment(), make_blob_ref() for testing
+    fakes.py             # FakeSender, FakeReader, FakeFileDownloader, FakeFileUploader, FakeEmailSender, FakeEmailReader, make_message(), make_attachment(), make_blob_ref(), make_email(), make_email_address() for testing
     graph/
       client.py          # GraphClient (httpx, retry on 429/503/504, error translation, request_bytes for binary downloads)
       sender.py          # GraphMessageSender + mention_tag() helper
       reader.py          # GraphMessageReader (history + get_one, HTML stripping, attachment parsing)
       downloader.py      # GraphFileDownloader (download file attachments via /shares endpoint)
       subscriptions.py   # SubscriptionManager (create, renew, delete, list_active)
+      mail_sender.py   # GraphEmailSender (send email, reply via /me/sendMail and /me/messages/{id}/reply)
+      mail_reader.py   # GraphEmailReader (list_messages, get_message, list_folders via /me/messages)
     blob/
       storage.py         # BlobStorageUploader (Azure Blob Storage upload + URL retrieval via container SAS URL)
 scripts/
@@ -34,6 +36,8 @@ scripts/
   test_poll.py           # Polling test: detect new messages and auto-reply
   test_file.py           # Smoke test: find and download file attachments
   test_blob.py           # Smoke test: upload file to Azure Blob Storage and get URL
+  test_mail_read.py    # Smoke test: list mail folders and read inbox
+  test_mail_send.py    # Smoke test: send a test email
 ```
 
 ## Key design decisions
@@ -93,6 +97,7 @@ El sistema requiere que los pasos se ejecuten en este orden. Cada paso depende d
 
 4. Bootstrap de autenticación (una sola vez, interactivo)
    python -m scripts.bootstrap_auth
+   python -m scripts.bootstrap_auth --no-browser   # solo imprime la URL, no abre el navegador
    Abre el navegador para que el service account inicie sesión.
    Genera el archivo token_cache.enc cifrado con Fernet.
    Debe repetirse si el refresh token expira (~90 días de
@@ -116,7 +121,8 @@ pip install -e ".[dev]"
 docker run -d -p 6379:6379 redis
 
 # Bootstrap auth (run once, interactively, as the service account)
-python -m scripts.bootstrap_auth
+python -m scripts.bootstrap_auth                  # opens browser automatically
+python -m scripts.bootstrap_auth --no-browser     # prints URL only, no browser
 
 # Run tests
 pytest
@@ -141,6 +147,12 @@ python -m scripts.test_file
 
 # Blob test: upload file to Azure Blob Storage (requires STORAGE_ACCOUNT_CONNECTION_STRING)
 python -m scripts.test_blob
+
+# Mail test: list folders and read inbox (requires Redis + token cache + Mail.ReadWrite)
+python -m scripts.test_mail_read
+
+# Mail test: send a test email (requires Redis + token cache + Mail.Send)
+python -m scripts.test_mail_send
 ```
 
 ## Important constraints

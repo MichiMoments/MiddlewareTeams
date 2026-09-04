@@ -1,6 +1,7 @@
 """One-time interactive sign-in. Run: python -m scripts.bootstrap_auth"""
 import http.server
 import socketserver
+import sys
 import urllib.parse
 import webbrowser
 
@@ -22,7 +23,8 @@ app = msal.ConfidentialClientApplication(
 
 flow = app.initiate_auth_code_flow(scopes=SCOPES, redirect_uri=cfg.redirect_uri)
 print("Sign in as the SERVICE ACCOUNT:\n", flow["auth_uri"])
-webbrowser.open(flow["auth_uri"])
+if "--no-browser" not in sys.argv:
+    webbrowser.open(flow["auth_uri"])
 
 captured: dict[str, str] = {}
 port = int(urllib.parse.urlparse(cfg.redirect_uri).port or 8400)
