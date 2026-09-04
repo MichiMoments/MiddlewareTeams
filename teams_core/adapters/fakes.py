@@ -6,8 +6,12 @@ from teams_core.domain.models import (
     BlobRef,
     ConversationRef,
     DownloadedFile,
+    EmailAddress,
     FileAttachment,
+    InboundEmail,
     InboundMessage,
+    MailFolder,
+    OutboundEmail,
     OutboundMessage,
 )
 
@@ -89,3 +93,62 @@ def make_blob_ref(
     url: str = "https://fake.blob.core.windows.net/test-container/test.pdf",
 ) -> BlobRef:
     return BlobRef(name=name, url=url)
+
+
+# --- Email fakes ---
+
+
+class FakeEmailSender:
+    def __init__(self) -> None:
+        self.sent: list[OutboundEmail] = []
+        self.replies: list[tuple[str, str]] = []
+
+    def send(self, email: OutboundEmail) -> None:
+        self.sent.append(email)
+
+    def reply(self, message_id: str, body_html: str) -> None:
+        self.replies.append((message_id, body_html))
+
+
+class FakeEmailReader:
+    def __init__(
+        self,
+        messages: Sequence[InboundEmail] = (),
+        folders: Sequence[MailFolder] = (),
+    ) -> None:
+        self._messages = list(messages)
+        self._folders = list(folders)
+
+    def list_messages(
+        self, *, folder_id: str | None = None, limit: int = 25
+    ) -> Sequence[InboundEmail]:
+        return self._messages[:limit]
+
+    def get_message(self, message_id: str) -> InboundEmail:
+        for m in self._messages:
+            if m.message_id == message_id:
+                return m
+        raise KeyError(message_id)
+
+    def list_folders(self) -> Sequence[MailFolder]:
+        return self._folders
+
+
+def make_email_address(
+    address: str = "test@example.com",
+    name: str | None = "Test User",
+) -> EmailAddress:
+    return EmailAddress(address=address, name=name)
+
+
+def make_email(subject: str = "Test Subject", **kw) -> InboundEmail:
+    defaults = dict(
+        message_id="mail-1",
+        subject=subject,
+        body_html="<p>Test body</p>",
+        body_preview="Test body",
+        from_address=EmailAddress(address="sender@example.com", name="Sender"),
+        to_recipients=(EmailAddress(address="me@example.com", name="Me"),),
+        received_at=datetime.now(timezone.utc),
+    )
+    return InboundEmail(**{**defaults, **kw})

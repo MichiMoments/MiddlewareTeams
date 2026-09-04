@@ -5,7 +5,10 @@ from teams_core.domain.models import (
     ConversationRef,
     DownloadedFile,
     FileAttachment,
+    InboundEmail,
     InboundMessage,
+    MailFolder,
+    OutboundEmail,
     OutboundMessage,
 )
 
@@ -37,6 +40,21 @@ class FileDownloader(Protocol):
 class FileUploader(Protocol):
     def upload(self, file_content: bytes, file_name: str) -> BlobRef: ...
     def get_blob_url(self, blob_name: str) -> str: ...
+
+
+class EmailSender(Protocol):
+    def send(self, email: OutboundEmail) -> None: ...
+    def reply(self, message_id: str, body_html: str) -> None: ...
+
+
+class EmailReader(Protocol):
+    def list_messages(
+        self, *, folder_id: str | None = None, limit: int = 25
+    ) -> Sequence[InboundEmail]: ...
+
+    def get_message(self, message_id: str) -> InboundEmail: ...
+
+    def list_folders(self) -> Sequence[MailFolder]: ...
 
 
 class MessageAnalyzer(Protocol):
